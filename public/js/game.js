@@ -7,7 +7,7 @@ var config = {
     default: 'arcade',
     arcade: {
       debug: false,
-      gravity: { y: 300 }
+      gravity: { y: 0 }
     }
   },
   scene: {
@@ -95,12 +95,16 @@ function create() {
     });
   });
   this.socket.on('playerMoved', function (playerInfo) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      if (playerInfo.playerId === otherPlayer.playerId) {
-        otherPlayer.setRotation(playerInfo.rotation);
-        otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-      }
-    });
+    if (playerInfo.playerId === self.socket.id){
+      self.ship.setPosition(playerInfo.x, playerInfo.y);
+    }else{
+      self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+        if (playerInfo.playerId === otherPlayer.playerId) {
+          otherPlayer.setRotation(playerInfo.rotation);
+          otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+        }
+      });
+    }
   });
   function onEvent ()
     {

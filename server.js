@@ -68,6 +68,15 @@ io.on('connection', function (socket) {
   });
 });
 
+setInterval(function(){
+  for(const player in players){
+    if(typeof player != "undefined"){
+      players[player].y++;
+      io.emit('playerMoved', players[player]);
+    }
+  }
+}, 10);
+
 server.listen(8081, function () {
   console.log(`Listening on ${server.address().port}`);
 });
