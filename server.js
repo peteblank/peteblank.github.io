@@ -48,11 +48,11 @@ io.on('connection', function (socket) {
 
   // when a player moves, update the player data
   socket.on('playerMovement', function (movementData) {
-    players[socket.id].x = movementData.x;
-    players[socket.id].y = movementData.y;
-    players[socket.id].rotation = movementData.rotation;
-    // emit a message to all players about the player that moved
-    socket.broadcast.emit('playerMoved', players[socket.id]);
+    if(movementData.x > 0){
+      players[socket.id].x++;
+    }else{
+      players[socket.id].x--;
+    }
   });
 
   socket.on('starCollected', function () {
@@ -75,7 +75,7 @@ setInterval(function(){
       io.emit('playerMoved', players[player]);
     }
   }
-}, 10);
+}, 5);
 
 server.listen(8081, function () {
   console.log(`Listening on ${server.address().port}`);
