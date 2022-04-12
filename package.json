@@ -1,6 +1,10 @@
 {
   "type": "module",
   "dependencies": {
+    "@geckos.io/phaser-on-nodejs": "^1.2.7",
+    "express": "^4.17.3",
+    "http-server": "^14.1.0",
+    "phaser": "^3.55.2",
     "phaser3-rex-plugins": "^1.1.68"
   }
 }

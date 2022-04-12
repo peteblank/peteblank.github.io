@@ -1,6 +1,9 @@
-import InTouchingPlugin from './node_modules/phaser3-rex-plugins/plugins/intouching-plugin.js';
+//import InTouchingPlugin from 'phaser3-rex-plugins/plugins/intouching-plugin.js';
+//import Phaser from 'phaser';
 
-var config = {
+
+ // Get key object
+ var config = {
 
   type: Phaser.AUTO,
   width: 750,
@@ -9,7 +12,7 @@ var config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    plugins: {
+    /*plugins: {
       global: [{
           key: 'rexInTouching',
           plugin: InTouchingPlugin,
@@ -17,7 +20,7 @@ var config = {
       },
       // ...
       ]
-  },
+  },*/
   physics: {
     default: "arcade",
     arcade: {
@@ -29,10 +32,10 @@ var config = {
     preload: preload,
     create: create,
     update: update
-  },
+  }
 }
- 
-  
+var l=0;//when right button is pressed
+var r=0;//when left button pressed
 var player;
 var player2;
 var platforms;
@@ -52,10 +55,6 @@ var initialTime;
 var button=0;
 var button_right=0;
 var button_left=0;
-var ison=0
- // Get key object
-
-
 function preload() {
 this.load.image("button_right","assets/buttons/buttons_right.png");
 this.load.image("button_left","assets/buttons/buttons_left.png");
@@ -84,7 +83,7 @@ this.load.image("button","assets/buttons/regular_button.png");
   
 }
 
-function create() {
+ function create() {
 
   var self = this;
   
@@ -182,22 +181,27 @@ function create() {
  
   button_right=this.add.image(270, 400,"button_right")
   .setInteractive()
-  .on('intouch', ()=> {
+  .on('pointerdown', ()=> {
     console.log("success")
+    r=1
+    l=0
+
+    player.anims.play("right", true);
 })
-  .on('pointerdown', () =>{
-    console.log("success");
-          })
   button_left=this.add.image(70, 400,"button_left")
   .setInteractive()
   .on('pointerdown', () =>{
-    console.log("success");
-          })
+    console.log("success")
+    l=1
+    r=0
+  
+     })
   button=this.add.image(650, 400,"button")
     .setInteractive()
     .on('pointerdown', () =>{
       console.log("success");
       this.sound.play("jump");
+      
             })
 
 
@@ -205,33 +209,36 @@ function create() {
 //keys
 
 function update() {
-
-  var touchl = this.plugins.get('rexInTouching').add(button_left, {enable:true})
-  touchl
-  .on('intouch', () =>{
-    player.setVelocityX(-160);
-    player.flipX = true;
+ if (this.input.activePointer.isDown )//while the button is pressed
+ {
+   if (r==0 && l==1){
     player.anims.play("left", true);
+    player.x-=2
+    player.flipX = true;
     punching = false;
-          },this)
+   }
+   else
+  {
+    player.anims.play("right", true);
+      player.x+=2;
+      player.flipX = false;
+      punching = false;
+  }
+}
+
+
+ 
   var  spacebar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-  if (this.body.touching.isDown){
+ 
   button
   .setInteractive()
   .on('pointerdown', () =>{
     player.setVelocityY(-430);
     punching = false;
           })
-        }
-   var touchr = this.plugins.get('rexInTouching').add(button_right, {enable:true})
-  touchr
-    .on('intouch', () =>{
-      console.log("right");
-      player.setVelocityX(160);
-      player.flipX = false;
-      player.anims.play("right", true);
-      punching = false;
-          })
+        
+ 
+   
   if (cursors.left.isDown) {
     player.setVelocityX(-160);
     player.flipX = true;
@@ -369,3 +376,5 @@ function punchplayer2(player, player2) {
     }
     
 }
+
+
