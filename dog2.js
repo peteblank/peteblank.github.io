@@ -1,6 +1,3 @@
-//import InTouchingPlugin from 'phaser3-rex-plugins/plugins/intouching-plugin.js';
-//import Phaser from 'phaser';
-
 
  // Get key object
  var config = {
