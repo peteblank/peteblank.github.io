@@ -62,7 +62,7 @@
         const flourElements = Array.from(wheat.children).filter(child => child.style.backgroundImage.includes('flour.png'));
         
         if (yeastElements.length > 0 && flourElements.length > 0) {
-            currentScore -= 1; // Subtract score for making bread
+            currentScore -= 10; // Subtract score for making bread
             scoreElement.textContent = `High Score: ${currentScore}`;
             
             yeastElements[0].remove(); // Remove one yeast element
