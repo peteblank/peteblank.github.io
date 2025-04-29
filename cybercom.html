@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Green Ball Eater</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        #gameContainer {
+            margin: 0 auto;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        #highScoreDisplay {
+            font-size: 24px;
+            margin: 10px;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Green Ball Eater</h1>
+ 
+    <div id="highScoreDisplay">High Score: <?php echo $highScore; ?></div>
+    <p>Use arrow keys to move the yellow ball and eat green balls!</p>
+
+    <script src="game.js"></script>
+<div id="wheat" style="width:800px; top: 900px; left: 50%; cursor: pointer;" onclick="handleWheatClick(this)"></div>
+
+<button id="resetButton" style="margin-top: 20px;" onclick="resetScore()">Reset Score</button>
+
+</body>
+</html>
