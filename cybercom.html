@@ -36,7 +36,17 @@
 
     <button id="playMusicButton" style="margin-top: 20px;" onclick="playMusic()">Play Music</button>
     <button id="pauseMusicButton" style="margin-top: 20px;" onclick="pauseMusic()">Pause Music</button>
+<script>
+        const audio = new Audio('music.mp3');
 
+        function playMusic() {
+            audio.play();
+        }
+
+        function pauseMusic() {
+            audio.pause();
+        }
+    </script>
     <script src="game.js"></script>
 <div id="wheat" style="width:800px; top: 900px; left: 50%; cursor: pointer;" onclick="handleWheatClick(this)">
 </div>
