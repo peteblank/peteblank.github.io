@@ -194,12 +194,12 @@
   
 
     <div class="info-panel">
-       <button id="make-flour">Make Flour (10 Wheat)</button>
-        <button id="make-yeast">Make Yeast (5 Wheat)</button>
-        <button id="make-bread">Make Bread (1 Flour, 1 Yeast)</button>
+       <button id="make-flour" onclick="makeFlour()">Make Flour (10 Wheat)</button>
+        <button id="make-yeast" onclick="makeYeast()">Make Yeast (5 Wheat)</button>
+        <button id="make-bread" onclick="makeBread()">Make Bread (1 Flour, 1 Yeast)</button>
         <button id="play-music" onclick="playMusic()">Play Music</button>
         <button id="stop-music" onclick="pauseMusic()">Stop Music</button>
-        <button id="reset-score" class="danger">Reset Global Score</button>
+        <button id="reset-score" onclick="resetScore()">Reset Global Score</button>
         <div>
     
     </div>
@@ -499,9 +499,10 @@
 
         const game = new Phaser.Game(config);
 </script>
-<button id="makeYeastButton" style="margin-top: 20px;" onclick="makeYeast()">Make Yeast</button>
+<!--<button id="makeYeastButton" style="margin-top: 20px;" onclick="makeYeast()">Make Yeast</button>
 <button id="makeBreadButton" style="margin-top: 20px;" onclick="makeBread()">Make Bread</button>
-<script>
+-->
+    <script>
     function makeBread() {
         const scoreElement = document.getElementById('highScoreDisplay');
         let currentScore = parseInt(scoreElement.textContent.replace('High Score: ', ''));
@@ -569,8 +570,10 @@
         }
     }
 </script>
+        <!--
 <button id="makeFlourButton" style="margin-top: 20px;" onclick="makeFlour()">Make Flour</button>
-<script>
+-->
+        <script>
     function makeFlour() {
         const scoreElement = document.getElementById('highScoreDisplay');
         let currentScore = parseInt(scoreElement.textContent.replace('High Score: ', ''));
@@ -606,10 +609,11 @@
         }
     }
 </script>
-<button id="resetButton" style="margin-top: 20px;" onclick="resetScore()">Reset Score</button>
-
+<!--<button id="resetButton" style="margin-top: 20px;" onclick="resetScore()">Reset Score</button>
+-->
 </body>
 </html>
+
 
 
 
