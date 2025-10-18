@@ -83,15 +83,19 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .controls-panel button:hover {
+            display:inline-block;
             background-color: #2980b9;
         }
         .controls-panel button:active {
+            display:inline-block;
             transform: scale(0.98);
         }
         .controls-panel button.danger {
+            display:inline-block;
             background-color: #e74c3c;
         }
         .controls-panel button.danger:hover {
+            display:inline-block;
             background-color: #c0392b;
         }
     </style>
@@ -230,7 +234,7 @@
                     this.playerSprite.setVelocity(velocityX, velocityY);
 
                     if(velocityX !== 0 || velocityY !== 0) {
-                        updateDoc(doc(playersRef, currentUserId), {
+                        setDoc(doc(playersRef, currentUserId),{merge:true} {
                             x: this.playerSprite.x,
                             y: this.playerSprite.y,
                         });
@@ -520,6 +524,7 @@
 
 </body>
 </html>
+
 
 
 
