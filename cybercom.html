@@ -223,297 +223,604 @@
 <div id="wheat" style="width:800px; top: 900px; left: 50%; cursor: pointer;" onclick="handleWheatClick(this)">
 </div>
     <script type="module">// --- Firebase SDK Imports ---
-         // --- Firebase SDK Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, updateDoc, getDocs, increment, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+        // --- Firebase SDK Imports ---
 
-        // --- Your Web App's Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyB9lwKUtRT8_LzzBbJ19hCR5HELozVtzWo",
-            authDomain: "cybercom-fc6f6.firebaseapp.com",
-            projectId: "cybercom-fc6f6",
-            storageBucket: "cybercom-fc6f6.appspot.com",
-            messagingSenderId: "576785018333",
-            appId: "1:576785018333:web:20c9e8b5b730e4bb039a34",
-            measurementId: "G-28MFQKQNBG"
-        };
+// Added signInWithCustomToken to imports as it was used in the original code.
 
-        // --- Firebase Initialization ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        // **CLEANED UP CONFIGURATION**
-        // This now correctly and safely handles the configuration provided by the platform.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-baker-game';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-        const playersRef = collection(db, `/artifacts/${appId}/public/data/players`);
-        const greenBallsRef = collection(db, `/artifacts/${appId}/public/data/greenBalls`);
-        const highScoreRef = doc(db, `/artifacts/${appId}/public/data/scores/highScore`);
-        let currentUserId = null;
+import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, updateDoc, getDocs, increment, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 
-        // --- Phaser Game Scene ---
-        class GameScene extends Phaser.Scene {
-            constructor() {
-                super('GameScene');
-                this.players = {}; 
-                this.greenBalls = {};
-                this.playerSprite = null;
-                this.cursors = null;
-                this.isPlayerInitialized = false;
-            }
+// --- Your Web App's Firebase Configuration ---
 
-            preload() {
-                this.load.image('yellowBall', 'yellow_ball.png');
-                this.load.image('greenBall', 'green_ball.png');
-                this.load.image('wheat', 'wheat.jpg');
-                this.load.image('yeast', 'yeast.jpg');
-                this.load.image('bread', 'bread.jpg');
-                this.load.image('flour', 'flour.png');
-            }
+// This is your primary and correct Firebase configuration.
 
-            create() {
-                this.cursors = this.input.keyboard.createCursorKeys();
+const firebaseConfig = {
 
-                onSnapshot(highScoreRef, (doc) => {
-                    const score = doc.exists() ? doc.data().value : 0;
-                    document.getElementById('highScoreDisplay').textContent = `Global Wheat: ${score}`;
-                });
+    apiKey: "AIzaSyB9lwKUtRT8_LzzBbJ19hCR5HELozVtzWo",
 
-                onAuthStateChanged(auth, user => {
-                    if (user && !this.isPlayerInitialized) {
-                        this.isPlayerInitialized = true;
-                        currentUserId = user.uid;
-                        document.getElementById('user-id-display').textContent = currentUserId;
-                        this.listenForPlayers();
-                        this.listenForGreenBalls();
-                        this.initializeGameWorld();
-                        
-                        window.addEventListener('beforeunload', () => {
-                             deleteDoc(doc(playersRef, currentUserId));
-                        });
-                    }
-                });
+    authDomain: "cybercom-fc6f6.firebaseapp.com",
 
-                if (initialAuthToken) {
-                    signInWithCustomToken(auth, initialAuthToken).catch(error => console.error("Custom token sign-in error:", error));
-                } else {
-                    signInAnonymously(auth).catch(error => console.error("Anonymous sign-in error:", error));
-                }
-            }
+    projectId: "cybercom-fc6f6",
 
-            update() {
-                if (this.playerSprite && this.cursors && currentUserId) {
-                    const speed = 200;
-                    let velocityX = 0;
-                    let velocityY = 0;
+    storageBucket: "cybercom-fc6f6.appspot.com",
 
-                    if (this.cursors.left.isDown) velocityX = -speed;
-                    else if (this.cursors.right.isDown) velocityX = speed;
-                    if (this.cursors.up.isDown) velocityY = -speed;
-                    else if (this.cursors.down.isDown) velocityY = speed;
+    messagingSenderId: "576785018333",
 
-                    this.playerSprite.setVelocity(velocityX, velocityY);
+    appId: "1:576785018333:web:20c9e8b5b730e4bb039a34",
 
-                    if(velocityX !== 0 || velocityY !== 0) {
-                        // Using updateDoc here is fine because we are just syncing position
-                        // and the document will almost certainly exist by the time the player moves.
-                        updateDoc(doc(playersRef, currentUserId), {
-                            x: this.playerSprite.x,
-                            y: this.playerSprite.y,
-                        });
-                    }
-                }
-            }
+    measurementId: "G-28MFQKQNBG"
 
-            async initializeGameWorld() {
-                const initialBalls = await getDocs(greenBallsRef);
-                if (initialBalls.empty) {
-                    for (let i = 0; i < 15; i++) {
-                        await addDoc(greenBallsRef, {
-                            x: Phaser.Math.Between(50, 750),
-                            y: Phaser.Math.Between(50, 550)
-                        });
-                    }
-                }
-            }
+};
 
-            listenForPlayers() {
-                onSnapshot(playersRef, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const playerData = change.doc.data();
-                        const playerId = change.doc.id;
 
-                        if (change.type === "added") {
-                            const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall');
-                            player.setCollideWorldBounds(true).setScale(0.5);
-                            const scoreText = this.add.text(playerData.x, playerData.y - 30, `Score: ${playerData.score}`, {
-                                fontSize: '16px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3
-                            }).setOrigin(0.5);
-                            player.scoreText = scoreText;
-                            this.players[playerId] = player;
+// --- Firebase Initialization ---
 
-                            if (playerId === currentUserId) {
-                                this.playerSprite = player;
-                            }
-                        } else if (change.type === "modified") {
-                            if (this.players[playerId]) {
-                               if (playerId !== currentUserId) {
-                                 this.players[playerId].setPosition(playerData.x, playerData.y);
-                               }
-                                this.players[playerId].scoreText.setPosition(playerData.x, playerData.y - 30);
-                                this.players[playerId].scoreText.setText(`Score: ${playerData.score}`);
+const app = initializeApp(firebaseConfig);
 
-                                if(playerId === currentUserId) {
-                                    document.getElementById('flour-count').textContent = playerData.flour || 0;
-                                    document.getElementById('yeast-count').textContent = playerData.yeast || 0;
-                                    document.getElementById('bread-count').textContent = playerData.bread || 0;
-                                }
-                             }
-                        } else if (change.type === "removed") {
-                            if (this.players[playerId]) {
-                                this.players[playerId].scoreText.destroy();
-                                this.players[playerId].destroy();
-                                delete this.players[playerId];
-                            }
-                        }
+const auth = getAuth(app);
+
+const db = getFirestore(app);
+
+
+// --- Game-specific configuration and Firebase references ---
+
+// Removed the conflicting "CLEANED UP CONFIGURATION" block.
+
+// The `appId` used for your collection paths should ideally be unique to the game instance,
+
+// or consistent if it refers to your Firebase project's web app ID.
+
+// Assuming __app_id refers to a unique game identifier, kept the original logic for it.
+
+const gameInstanceAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-baker-game';
+
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Keep if custom token is a platform specific thing
+
+
+// Firestore references using the gameInstanceAppId for organization
+
+const playersRef = collection(db, `/artifacts/${gameInstanceAppId}/public/data/players`);
+
+const greenBallsRef = collection(db, `/artifacts/${gameInstanceAppId}/public/data/greenBalls`);
+
+const highScoreRef = doc(db, `/artifacts/${gameInstanceAppId}/public/data/scores/highScore`);
+
+let currentUserId = null; // Will store the UID of the currently signed-in user
+
+
+// --- Phaser Game Scene ---
+
+class GameScene extends Phaser.Scene {
+
+    constructor() {
+
+        super('GameScene');
+
+        this.players = {};
+
+        this.greenBalls = {};
+
+        this.playerSprite = null;
+
+        this.cursors = null;
+
+        this.isPlayerInitialized = false; // Flag to prevent re-initialization of game elements
+
+    }
+
+
+    preload() {
+
+        this.load.image('yellowBall', 'yellow_ball.png');
+
+        this.load.image('greenBall', 'green_ball.png');
+
+        this.load.image('wheat', 'wheat.jpg');
+
+        this.load.image('yeast', 'yeast.jpg');
+
+        this.load.image('bread', 'bread.jpg');
+
+        this.load.image('flour', 'flour.png');
+
+    }
+
+
+    create() {
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+
+        // Listen for global high score changes and update the UI
+
+        onSnapshot(highScoreRef, (doc) => {
+
+            const score = doc.exists() ? doc.data().value : 0;
+
+            document.getElementById('highScoreDisplay').textContent = `Global Wheat: ${score}`;
+
+        });
+
+
+        // **Primary Authentication Logic:**
+
+        // This listener will fire whenever the user's sign-in state changes (on page load, sign in, sign out).
+
+        onAuthStateChanged(auth, async user => {
+
+            if (user) { // User is signed in
+
+                if (!this.isPlayerInitialized) { // Only initialize game once per user session
+
+                    this.isPlayerInitialized = true; // Set flag to true
+
+                    currentUserId = user.uid; // Store the user's unique ID
+
+                    document.getElementById('user-id-display').textContent = currentUserId;
+
+                    console.log(`User ${user.uid} signed in.`);
+
+
+                    // Create or update the current player's document in Firestore
+
+                    // The 'merge: true' option is crucial here. If the player document
+
+                    // already exists (e.g., returning player), it merges the data;
+
+                    // otherwise, it creates a new document.
+
+                    await setDoc(doc(playersRef, currentUserId), {
+
+                        x: Phaser.Math.Between(50, 750),
+
+                        y: Phaser.Math.Between(50, 550),
+
+                        score: 0,
+
+                        id: currentUserId,
+
+                        flour: 0,
+
+                        yeast: 0,
+
+                        bread: 0
+
+                    }, { merge: true }).catch(e => console.error("Error setting initial player data:", e));
+
+
+                    // Start listening for other players and game objects
+
+                    this.listenForPlayers();
+
+                    this.listenForGreenBalls();
+
+                    this.initializeGameWorld(); // Ensure initial green balls exist
+
+
+                    // Clean up player data from Firestore when the user leaves the page
+
+                    window.addEventListener('beforeunload', () => {
+
+                        console.log(`Deleting player ${currentUserId} data on unload.`);
+
+                        deleteDoc(doc(playersRef, currentUserId)).catch(e => console.error("Error deleting player data on unload:", e));
+
                     });
-                });
 
-                 setDoc(doc(playersRef, currentUserId), {
-                    x: Math.random() * 700 + 50,
-                    y: Math.random() * 500 + 50,
-                    score: 0,
-                    id: currentUserId,
-                    flour: 0,
-                    yeast: 0,
-                    bread: 0
-                });
+                }
+
+            } else { // No user is signed in (or user signed out)
+
+                console.log("No user signed in. Attempting anonymous sign-in.");
+
+                this.isPlayerInitialized = false; // Reset the initialization flag
+
+                currentUserId = null; // Clear the user ID
+
+                document.getElementById('user-id-display').textContent = 'Not Signed In';
+
+
+                // Automatically sign in anonymously if no user is found
+
+                signInAnonymously(auth).catch(error => console.error("Anonymous sign-in error:", error));
+
             }
 
-            listenForGreenBalls() {
-                onSnapshot(greenBallsRef, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const ballId = change.doc.id;
-                        const ballData = change.doc.data();
+        });
 
-                        if (change.type === "added") {
-                            const ball = this.physics.add.image(ballData.x, ballData.y, 'greenBall').setScale(0.3);
-                            this.greenBalls[ballId] = ball;
-                            if (this.playerSprite) {
-                                this.physics.add.overlap(this.playerSprite, ball, () => this.eatGreenBall(ballId), null, this);
-                            }
-                        } else if (change.type === "removed") {
-                            if (this.greenBalls[ballId]) {
-                                this.greenBalls[ballId].destroy();
-                                delete this.greenBalls[ballId];
-                            }
-                        }
-                    });
-                });
-            }
 
-            async eatGreenBall(ballId) {
-                if (!this.greenBalls[ballId] || !currentUserId) return;
-                
-                const ballSprite = this.greenBalls[ballId];
-                ballSprite.destroy();
-                delete this.greenBalls[ballId];
+        // Optional: Attempt custom token sign-in if a token is provided from the environment.
 
-                try {
-                    await deleteDoc(doc(greenBallsRef, ballId));
-                    await addDoc(greenBallsRef, { x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550) });
-                    
-                    // **FIX APPLIED HERE**
-                    // Use setDoc with merge to prevent errors if the doc doesn't exist yet.
-                    await setDoc(doc(playersRef, currentUserId), { score: increment(10) }, { merge: true });
-                    await setDoc(highScoreRef, { value: increment(10) }, { merge: true });
+        // The `onAuthStateChanged` listener above will then take over once the user is signed in.
 
-                } catch(e) { console.error("Error eating ball:", e); }
-            }
+        if (initialAuthToken) {
+
+            signInWithCustomToken(auth, initialAuthToken).catch(error => console.error("Custom token sign-in error:", error));
+
         }
-        
-        // --- Button Event Listeners ---
-        document.getElementById('reset-score').addEventListener('click', () => {
-             setDoc(highScoreRef, { value: 0 });
-        });
-        
-        document.getElementById('play-music').addEventListener('click', () => {
-            document.getElementById('background-music').play();
-        });
 
-        document.getElementById('stop-music').addEventListener('click', () => {
-            const music = document.getElementById('background-music');
-            music.pause();
-            music.currentTime = 0;
-        });
+        // Removed the redundant `else { signInAnonymously(auth) }` from here,
 
-        document.getElementById('make-flour').addEventListener('click', async () => {
-            if (!currentUserId) return;
-            const highScoreDoc = await getDoc(highScoreRef);
-            if (highScoreDoc.exists() && highScoreDoc.data().value >= 10) {
-                await setDoc(highScoreRef, { value: increment(-10) }, { merge: true });
+        // as `onAuthStateChanged` now handles anonymous sign-in when `user` is null.
 
-                // **FIX APPLIED HERE**
-                await setDoc(doc(playersRef, currentUserId), { flour: increment(1) }, { merge: true });
-            } else {
-                alert("Not enough global wheat!");
+    }
+
+
+    update() {
+
+        if (this.playerSprite && this.cursors && currentUserId) {
+
+            const speed = 200;
+
+            let velocityX = 0;
+
+            let velocityY = 0;
+
+
+            if (this.cursors.left.isDown) velocityX = -speed;
+
+            else if (this.cursors.right.isDown) velocityX = speed;
+
+            if (this.cursors.up.isDown) velocityY = -speed;
+
+            else if (this.cursors.down.isDown) velocityY = speed;
+
+
+            this.playerSprite.setVelocity(velocityX, velocityY);
+
+
+            if(velocityX !== 0 || velocityY !== 0) {
+
+                // Update player position in Firestore, but only if the player is moving
+
+                updateDoc(doc(playersRef, currentUserId), {
+
+                    x: this.playerSprite.x,
+
+                    y: this.playerSprite.y,
+
+                }).catch(e => console.error("Error updating player position:", e));
+
             }
-        });
 
-        document.getElementById('make-yeast').addEventListener('click', async () => {
-            if (!currentUserId) return;
-            const highScoreDoc = await getDoc(highScoreRef);
-            if (highScoreDoc.exists() && highScoreDoc.data().value >= 5) {
-                await setDoc(highScoreRef, { value: increment(-5) }, { merge: true });
-                
-                // **FIX APPLIED HERE**
-                await setDoc(doc(playersRef, currentUserId), { yeast: increment(1) }, { merge: true });
-            } else {
-                alert("Not enough global wheat!");
+        }
+
+    }
+
+
+    async initializeGameWorld() {
+
+        // ... (existing logic for initializing green balls) ...
+
+        const initialBalls = await getDocs(greenBallsRef);
+
+        if (initialBalls.empty) {
+
+            for (let i = 0; i < 15; i++) {
+
+                await addDoc(greenBallsRef, {
+
+                    x: Phaser.Math.Between(50, 750),
+
+                    y: Phaser.Math.Between(50, 550)
+
+                }).catch(e => console.error("Error adding initial green ball:", e));
+
             }
+
+        }
+
+    }
+
+
+    listenForPlayers() {
+
+        onSnapshot(playersRef, (snapshot) => {
+
+            snapshot.docChanges().forEach((change) => {
+
+                const playerData = change.doc.data();
+
+                const playerId = change.doc.id;
+
+
+                if (change.type === "added") {
+
+                    const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall');
+
+                    player.setCollideWorldBounds(true).setScale(0.5);
+
+                    const scoreText = this.add.text(playerData.x, playerData.y - 30, `Score: ${playerData.score}`, {
+
+                        fontSize: '16px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3
+
+                    }).setOrigin(0.5);
+
+                    player.scoreText = scoreText;
+
+                    this.players[playerId] = player;
+
+
+                    if (playerId === currentUserId) {
+
+                        this.playerSprite = player;
+
+                        // If playerSprite is created, add overlap with existing green balls
+
+                        Object.values(this.greenBalls).forEach(ball => {
+
+                            if (ball.ballId) { // Ensure ballId is stored on sprite
+
+                                this.physics.add.overlap(this.playerSprite, ball, () => this.eatGreenBall(ball.ballId), null, this);
+
+                            }
+
+                        });
+
+                    }
+
+                } else if (change.type === "modified") {
+
+                    if (this.players[playerId]) {
+
+                       if (playerId !== currentUserId) {
+
+                         this.players[playerId].setPosition(playerData.x, playerData.y);
+
+                       }
+
+                        this.players[playerId].scoreText.setPosition(playerData.x, playerData.y - 30);
+
+                        this.players[playerId].scoreText.setText(`Score: ${playerData.score}`);
+
+
+                        if(playerId === currentUserId) { // Update local player resource counts
+
+                            document.getElementById('flour-count').textContent = playerData.flour || 0;
+
+                            document.getElementById('yeast-count').textContent = playerData.yeast || 0;
+
+                            document.getElementById('bread-count').textContent = playerData.bread || 0;
+
+                        }
+
+                     }
+
+                } else if (change.type === "removed") {
+
+                    if (this.players[playerId]) {
+
+                        this.players[playerId].scoreText.destroy();
+
+                        this.players[playerId].destroy();
+
+                        delete this.players[playerId];
+
+                    }
+
+                }
+
+            });
+
         });
 
-        document.getElementById('make-bread').addEventListener('click', async () => {
-            if (!currentUserId) return;
-            const playerDoc = await getDoc(doc(playersRef, currentUserId));
-            if (playerDoc.exists() && playerDoc.data().flour >= 1 && playerDoc.data().yeast >= 1) {
+        // The `setDoc` call for the current player is moved to `onAuthStateChanged`
 
-                // **FIX APPLIED HERE**
-                await setDoc(doc(playersRef, currentUserId), {
-                    flour: increment(-1),
-                    yeast: increment(-1),
-                    bread: increment(1)
-                }, { merge: true });
+        // to ensure it happens exactly once after authentication.
 
-            } else {
-                alert("Not enough flour and yeast!");
-            }
+    }
+
+
+    listenForGreenBalls() {
+
+        onSnapshot(greenBallsRef, (snapshot) => {
+
+            snapshot.docChanges().forEach((change) => {
+
+                const ballId = change.doc.id;
+
+                const ballData = change.doc.data();
+
+
+                if (change.type === "added") {
+
+                    const ball = this.physics.add.image(ballData.x, ballData.y, 'greenBall').setScale(0.3);
+
+                    ball.ballId = ballId; // Store the ballId on the sprite for easy reference
+
+                    this.greenBalls[ballId] = ball;
+
+                    if (this.playerSprite) { // If the player sprite is already created, add overlap
+
+                        this.physics.add.overlap(this.playerSprite, ball, () => this.eatGreenBall(ballId), null, this);
+
+                    }
+
+                } else if (change.type === "removed") {
+
+                    if (this.greenBalls[ballId]) {
+
+                        this.greenBalls[ballId].destroy();
+
+                        delete this.greenBalls[ballId];
+
+                    }
+
+                }
+
+            });
+
         });
 
+    }
 
-        // --- Game Configuration ---
-        const config = {
-            type: Phaser.AUTO,
-            width: 800,
-            height: 600,
-            parent: 'game-container',
-            backgroundColor: '#3498db',
-            physics: {
-                default: 'arcade',
-                arcade: { gravity: { y: 0 } }
-            },
-            scene: [GameScene]
-        };
 
-        const game = new Phaser.Game(config);
+    async eatGreenBall(ballId) {
+
+        if (!this.greenBalls[ballId] || !currentUserId) return;
+
+
+        const ballSprite = this.greenBalls[ballId];
+
+        ballSprite.destroy(); // Remove the ball sprite from the game
+
+        delete this.greenBalls[ballId]; // Remove from tracking
+
+
+        try {
+
+            await deleteDoc(doc(greenBallsRef, ballId)); // Delete from Firestore
+
+            await addDoc(greenBallsRef, { x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550) }); // Add a new one
+
+            
+
+            // Increment player's score and global high score
+
+            await setDoc(doc(playersRef, currentUserId), { score: increment(10) }, { merge: true });
+
+            await setDoc(highScoreRef, { value: increment(10) }, { merge: true });
+
+
+        } catch(e) { console.error("Error eating ball:", e); }
+
+    }
+
+}
+
+
+// --- Button Event Listeners (rest of your code) ---
+
+// These functions correctly check `currentUserId` before attempting Firestore operations.
+
+document.getElementById('reset-score').addEventListener('click', () => {
+
+     setDoc(highScoreRef, { value: 0 }).catch(e => console.error("Error resetting score:", e));
+
+});
+
+
+document.getElementById('play-music').addEventListener('click', () => {
+
+    document.getElementById('background-music').play();
+
+});
+
+
+document.getElementById('stop-music').addEventListener('click', () => {
+
+    const music = document.getElementById('background-music');
+
+    music.pause();
+
+    music.currentTime = 0;
+
+});
+
+
+document.getElementById('make-flour').addEventListener('click', async () => {
+
+    if (!currentUserId) return;
+
+    const highScoreDoc = await getDoc(highScoreRef);
+
+    if (highScoreDoc.exists() && highScoreDoc.data().value >= 10) {
+
+        await setDoc(highScoreRef, { value: increment(-10) }, { merge: true }).catch(e => console.error("Error decrementing high score for flour:", e));
+
+        await setDoc(doc(playersRef, currentUserId), { flour: increment(1) }, { merge: true }).catch(e => console.error("Error making flour:", e));
+
+    } else {
+
+        alert("Not enough global wheat!");
+
+    }
+
+});
+
+
+document.getElementById('make-yeast').addEventListener('click', async () => {
+
+    if (!currentUserId) return;
+
+    const highScoreDoc = await getDoc(highScoreRef);
+
+    if (highScoreDoc.exists() && highScoreDoc.data().value >= 5) {
+
+        await setDoc(highScoreRef, { value: increment(-5) }, { merge: true }).catch(e => console.error("Error decrementing high score for yeast:", e));
+
+        await setDoc(doc(playersRef, currentUserId), { yeast: increment(1) }, { merge: true }).catch(e => console.error("Error making yeast:", e));
+
+    } else {
+
+        alert("Not enough global wheat!");
+
+    }
+
+});
+
+
+document.getElementById('make-bread').addEventListener('click', async () => {
+
+    if (!currentUserId) return;
+
+    const playerDoc = await getDoc(doc(playersRef, currentUserId));
+
+    if (playerDoc.exists() && playerDoc.data().flour >= 1 && playerDoc.data().yeast >= 1) {
+
+        await setDoc(doc(playersRef, currentUserId), {
+
+            flour: increment(-1),
+
+            yeast: increment(-1),
+
+            bread: increment(1)
+
+        }, { merge: true }).catch(e => console.error("Error making bread:", e));
+
+    } else {
+
+        alert("Not enough flour and yeast!");
+
+    }
+
+});
+
+
+
+// --- Game Configuration ---
+
+const config = {
+
+    type: Phaser.AUTO,
+
+    width: 800,
+
+    height: 600,
+
+    parent: 'game-container',
+
+    backgroundColor: '#3498db',
+
+    physics: {
+
+        default: 'arcade',
+
+        arcade: { gravity: { y: 0 } }
+
+    },
+
+    scene: [GameScene]
+
+};
+
+
+const game = new Phaser.Game(config);
+
 </script>
 <!--<button id="makeYeastButton" style="margin-top: 20px;" onclick="makeYeast()">Make Yeast</button>
 <button id="makeBreadButton" style="margin-top: 20px;" onclick="makeBread()">Make Bread</button>
@@ -629,6 +936,7 @@
 -->
 </body>
 </html>
+
 
 
 
