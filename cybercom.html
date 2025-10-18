@@ -96,11 +96,39 @@
     </style>
 </head>
 <body>
-    <h1>Green Ball Eater</h1>
- 
+   <!-- <h1>Green Ball Eater</h1>
+    
     <div id="highScoreDisplay">High Score: <?php echo $highScore; ?></div>
     <p>Use arrow keys to move the yellow ball and eat green balls!</p>
+-->
+      <h1 class="text-3xl font-bold mb-2">Multiplayer Ball Eater & Baker</h1>
+    <div id="game-container"></div>
 
+    <div class="inventory-panel">
+        <h2>Your Inventory:</h2>
+        <div>Flour: <span id="flour-count">0</span></div>
+        <div>Yeast: <span id="yeast-count">0</span></div>
+        <div>Bread: <span id="bread-count">0</span></div>
+    </div>
+
+    <div class="controls-panel">
+        <button id="make-flour">Make Flour (10 Wheat)</button>
+        <button id="make-yeast">Make Yeast (5 Wheat)</button>
+        <button id="make-bread">Make Bread (1 Flour, 1 Yeast)</button>
+        <button id="play-music">Play Music</button>
+        <button id="stop-music">Stop Music</button>
+        <button id="reset-score" class="danger">Reset Global Score</button>
+    </div>
+
+    <div class="info-panel">
+        <div>
+             <h2 id="highScoreDisplay">Global Wheat: 0</h2>
+        </div>
+        <div>
+            <h2>Your User ID:</h2>
+            <p id="user-id-display">Connecting...</p>
+        </div>
+    </div>
     <button id="playMusicButton" style="margin-top: 20px;" onclick="playMusic()">Play Music</button>
     <button id="pauseMusicButton" style="margin-top: 20px;" onclick="pauseMusic()">Pause Music</button>
 <script>
@@ -488,4 +516,5 @@
 
 </body>
 </html>
+
 
