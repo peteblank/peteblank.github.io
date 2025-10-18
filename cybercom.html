@@ -154,6 +154,7 @@
 <div id="wheat" style="width:800px; top: 900px; left: 50%; cursor: pointer;" onclick="handleWheatClick(this)">
 </div>
     <script type="module">// --- Firebase SDK Imports ---
+        // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, updateDoc, getDocs, serverTimestamp, increment, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -184,6 +185,7 @@
                 this.greenBalls = {};
                 this.playerSprite = null;
                 this.cursors = null;
+                this.isPlayerInitialized = false;
             }
 
             preload() {
@@ -200,7 +202,8 @@
                 });
 
                 onAuthStateChanged(auth, user => {
-                    if (user) {
+                    if (user && !this.isPlayerInitialized) {
+                        this.isPlayerInitialized = true;
                         currentUserId = user.uid;
                         document.getElementById('user-id-display').textContent = currentUserId;
                         this.listenForPlayers();
@@ -234,7 +237,9 @@
                     this.playerSprite.setVelocity(velocityX, velocityY);
 
                     if(velocityX !== 0 || velocityY !== 0) {
-                        setDoc(doc(playersRef, currentUserId),{merge:true} {
+                        // Using updateDoc here is fine because we are just syncing position
+                        // and the document will almost certainly exist by the time the player moves.
+                        updateDoc(doc(playersRef, currentUserId), {
                             x: this.playerSprite.x,
                             y: this.playerSprite.y,
                         });
@@ -339,8 +344,12 @@
                 try {
                     await deleteDoc(doc(greenBallsRef, ballId));
                     await addDoc(greenBallsRef, { x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550) });
-                    await updateDoc(doc(playersRef, currentUserId), { score: increment(10) });
+                    
+                    // **FIX APPLIED HERE**
+                    // Use setDoc with merge to prevent errors if the doc doesn't exist yet.
+                    await setDoc(doc(playersRef, currentUserId), { score: increment(10) }, { merge: true });
                     await setDoc(highScoreRef, { value: increment(10) }, { merge: true });
+
                 } catch(e) { console.error("Error eating ball:", e); }
             }
         }
@@ -365,7 +374,9 @@
             const highScoreDoc = await getDoc(highScoreRef);
             if (highScoreDoc.exists() && highScoreDoc.data().value >= 10) {
                 await setDoc(highScoreRef, { value: increment(-10) }, { merge: true });
-                await updateDoc(doc(playersRef, currentUserId), { flour: increment(1) });
+
+                // **FIX APPLIED HERE**
+                await setDoc(doc(playersRef, currentUserId), { flour: increment(1) }, { merge: true });
             } else {
                 alert("Not enough global wheat!");
             }
@@ -376,7 +387,9 @@
             const highScoreDoc = await getDoc(highScoreRef);
             if (highScoreDoc.exists() && highScoreDoc.data().value >= 5) {
                 await setDoc(highScoreRef, { value: increment(-5) }, { merge: true });
-                await updateDoc(doc(playersRef, currentUserId), { yeast: increment(1) });
+                
+                // **FIX APPLIED HERE**
+                await setDoc(doc(playersRef, currentUserId), { yeast: increment(1) }, { merge: true });
             } else {
                 alert("Not enough global wheat!");
             }
@@ -386,18 +399,21 @@
             if (!currentUserId) return;
             const playerDoc = await getDoc(doc(playersRef, currentUserId));
             if (playerDoc.exists() && playerDoc.data().flour >= 1 && playerDoc.data().yeast >= 1) {
-                await updateDoc(doc(playersRef, currentUserId), {
+
+                // **FIX APPLIED HERE**
+                await setDoc(doc(playersRef, currentUserId), {
                     flour: increment(-1),
                     yeast: increment(-1),
                     bread: increment(1)
-                });
+                }, { merge: true });
+
             } else {
                 alert("Not enough flour and yeast!");
             }
         });
 
 
-     // --- Game Configuration ---
+        // --- Game Configuration ---
         const config = {
             type: Phaser.AUTO,
             width: 800,
@@ -524,6 +540,7 @@
 
 </body>
 </html>
+
 
 
 
