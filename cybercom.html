@@ -256,213 +256,243 @@
         };
         
 
-        // --- Firebase Initialization ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+      class GameScene extends Phaser.Scene {
+    constructor() {
+        super('GameScene');
+        this.players = {};
+        this.greenBalls = {};
+        this.playerSprite = null;
+        this.cursors = null;
+        this.isPlayerInitialized = false;
+        this.lastPositionUpdate = 0;
+        this.lastSentX = null;
+        this.lastSentY = null;
+    }
 
-        // --- Firestore Collection References ---
-        const appId = firebaseConfig.appId;
-        const playersRef = collection(db, `/artifacts/${appId}/public/data/players`);
-        const greenBallsRef = collection(db, `/artifacts/${appId}/public/data/greenBalls`);
-        const highScoreRef = doc(db, `/artifacts/${appId}/public/data/scores/highScore`);
-        let currentUserId = null;
+    preload() {
+        this.load.image('yellowBall', 'yellow_ball.png');
+        this.load.image('greenBall', 'green_ball.png');
+    }
 
+    create() {
+        this.cursors = this.input.keyboard.createCursorKeys();
 
-        // --- Phaser Game Scene ---
-        class GameScene extends Phaser.Scene {
-            constructor() {
-                super('GameScene');
-                this.players = {}; 
-                this.greenBalls = {};
-                this.playerSprite = null;
-                this.cursors = null;
-                this.isPlayerInitialized = false;
-            }
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                if (this.isPlayerInitialized) return;
+                this.isPlayerInitialized = true;
+                currentUserId = user.uid;
+                document.getElementById('user-id-display').textContent = currentUserId;
 
-            preload() {
-                this.load.image('yellowBall', 'yellow_ball.png');
-                this.load.image('greenBall', 'green_ball.png');
-        
-            }
-            create() {
-                this.cursors = this.input.keyboard.createCursorKeys();
+                const startX = Phaser.Math.Between(50, 750);
+                const startY = Phaser.Math.Between(50, 550);
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) { 
-                        if (this.isPlayerInitialized) return; 
-                        this.isPlayerInitialized = true;
-                        currentUserId = user.uid;
-                        document.getElementById('user-id-display').textContent = currentUserId;
-
-                        try {
-                            await setDoc(doc(playersRef, currentUserId), {
-                                x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550),
-                                score: 0, id: currentUserId, flour: 0, yeast: 0, bread: 0,
-                                name: "Anonymous", message: "Hello!"
-                            });
-
-                            this.attachFirestoreListeners();
-                            await this.initializeGameWorld();
-                            window.addEventListener('beforeunload', () => deleteDoc(doc(playersRef, currentUserId)));
-
-                        } catch (error) {
-                            console.error("A Firestore error occurred during setup:", error);
-                            if (error.code === 'permission-denied') {
-                                document.getElementById('firestore-error-modal').style.display = 'block';
-                            }
-                        }
-
-                    } else { 
-                        this.isPlayerInitialized = false;
-                        currentUserId = null;
-                        signInAnonymously(auth).catch(error => {
-                            console.error("Anonymous Sign-in Error:", error);
-                            if (error.code === 'auth/configuration-not-found' || error.code === 'auth/admin-restricted-operation') {
-                                document.getElementById('auth-error-modal').style.display = 'block';
-                            }
-                        });
-                    }
-                });
-            }
-
-            update() {
-                if (this.playerSprite && this.cursors && currentUserId) {
-                    const speed = 200;
-                    let velocityX = 0; let velocityY = 0;
-                    if (this.cursors.left.isDown) velocityX = -speed;
-                    else if (this.cursors.right.isDown) velocityX = speed;
-                    if (this.cursors.up.isDown) velocityY = -speed;
-                    else if (this.cursors.down.isDown) velocityY = speed;
-
-                    this.playerSprite.setVelocity(velocityX, velocityY);
-                    /*if (velocityX !== 0 || velocityY !== 0) {
-                        updateDoc(doc(playersRef, currentUserId), { x: this.playerSprite.x, y: this.playerSprite.y });
-                    }*/
-                }
-            }
-            
-            attachFirestoreListeners() {
-                onSnapshot(highScoreRef, (doc) => {
-                    document.getElementById('highScoreDisplay').textContent = `Global Wheat: ${doc.exists() ? doc.data().value : 0}`;
-                });
-
-                onSnapshot(playersRef, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const playerData = change.doc.data();
-                        const playerId = change.doc.id;
-                        const textStyle = { fontSize: '14px', fill: '#fff', stroke: '#000', strokeThickness: 3, align: 'center' };
-
-                        if (change.type === "added") {
-                            const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall').setCollideWorldBounds(true).setScale(0.5);
-                            const nameText = this.add.text(0, 0, `${playerData.name}\n${playerData.message}`, textStyle).setOrigin(0.5);
-                            const scoreText = this.add.text(0, 0, `Score: ${playerData.score}`, { ...textStyle, fontSize: '16px' }).setOrigin(0.5);
-                            
-                            player.uiElements = [nameText, scoreText];
-                            this.players[playerId] = player;
-                            if (playerId === currentUserId) this.playerSprite = player;
-                        } 
-                        
-                        if (this.players[playerId]) {
-                             const player = this.players[playerId];
-                             if (playerId !== currentUserId) {
-                                 player.setPosition(playerData.x, playerData.y);
-                             }
-                             player.uiElements[0].setPosition(playerData.x, playerData.y - 60).setText(`${playerData.name}\n${playerData.message}`);
-                             player.uiElements[1].setPosition(playerData.x, playerData.y - 30).setText(`Score: ${playerData.score}`);
-
-                             if (playerId === currentUserId) {
-                                document.getElementById('flour-count').textContent = playerData.flour || 0;
-                                document.getElementById('yeast-count').textContent = playerData.yeast || 0;
-                                document.getElementById('bread-count').textContent = playerData.bread || 0;
-                             }
-                        }
-
-                        if (change.type === "removed") {
-                            if (this.players[playerId]) {
-                                this.players[playerId].uiElements.forEach(el => el.destroy());
-                                this.players[playerId].destroy();
-                                delete this.players[playerId];
-                            }
-                        }
-                    });
-                });
-
-                onSnapshot(greenBallsRef, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const ballId = change.doc.id;
-                        const ballData = change.doc.data();
-                        if (change.type === "added") {
-                            const ball = this.physics.add.image(ballData.x, ballData.y, 'greenBall').setScale(0.3);
-                            this.greenBalls[ballId] = ball;
-                            if (this.playerSprite) {
-                                this.physics.add.overlap(this.playerSprite, ball, () => this.eatGreenBall(ballId), null, this);
-                            }
-                        } else if (change.type === "removed") {
-                            if (this.greenBalls[ballId]) {
-                                this.greenBalls[ballId].destroy();
-                                delete this.greenBalls[ballId];
-                            }
-                        }
-                    });
-                });
-            }
-
-            async initializeGameWorld() {
-                const initialBalls = await getDocs(greenBallsRef);
-                if (initialBalls.empty) {
-                    for (let i = 0; i < 15; i++) {
-                        addDoc(greenBallsRef, { x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550) });
-                    }
-                }
-            }
-
-            async eatGreenBall(ballId) {
-                if (!this.greenBalls[ballId] || !currentUserId) return;
-                this.greenBalls[ballId].destroy();
-                delete this.greenBalls[ballId];
                 try {
-                    await deleteDoc(doc(greenBallsRef, ballId));
-                    await addDoc(greenBallsRef, { x: Phaser.Math.Between(50, 750), y: Phaser.Math.Between(50, 550) });
-                    await setDoc(doc(playersRef, currentUserId), { score: increment(10) }, { merge: true });
-                    await setDoc(highScoreRef, { value: increment(10) }, { merge: true });
-                } catch(e) { console.error("Error eating ball:", e); }
+                    await setDoc(doc(playersRef, currentUserId), {
+                        x: startX, y: startY,
+                        score: 0,
+                        flour: 0, yeast: 0, bread: 0,
+                        name: "Anonymous",
+                        message: "Hello!",
+                        id: currentUserId,
+                        ownerId: currentUserId // <- 🔧 REQUIRED for Firestore rules
+                    }, { merge: true });
+
+                    this.attachFirestoreListeners();
+                    await this.initializeGameWorld();
+
+                    // Try to clean up player doc on exit
+                    window.addEventListener('beforeunload', () => {
+                        const url = doc(playersRef, currentUserId).path;
+                        navigator.sendBeacon(
+                            `/delete-player?path=${encodeURIComponent(url)}`
+                        );
+                    });
+
+                } catch (error) {
+                    console.error("A Firestore error occurred during setup:", error);
+                    if (error.code === 'permission-denied') {
+                        document.getElementById('firestore-error-modal').style.display = 'block';
+                    }
+                }
+
+            } else {
+                this.isPlayerInitialized = false;
+                currentUserId = null;
+                signInAnonymously(auth).catch(error => {
+                    console.error("Anonymous Sign-in Error:", error);
+                    if (error.code === 'auth/configuration-not-found' || error.code === 'auth/admin-restricted-operation') {
+                        document.getElementById('auth-error-modal').style.display = 'block';
+                    }
+                });
+            }
+        });
+    }
+
+    update(time, delta) {
+        if (this.playerSprite && this.cursors && currentUserId) {
+            const speed = 200;
+            let velocityX = 0;
+            let velocityY = 0;
+
+            if (this.cursors.left.isDown) velocityX = -speed;
+            else if (this.cursors.right.isDown) velocityX = speed;
+
+            if (this.cursors.up.isDown) velocityY = -speed;
+            else if (this.cursors.down.isDown) velocityY = speed;
+
+            this.playerSprite.setVelocity(velocityX, velocityY);
+
+            const now = Date.now();
+            const updateInterval = 200; // ms
+
+            const x = Math.round(this.playerSprite.x);
+            const y = Math.round(this.playerSprite.y);
+            const moved = (x !== this.lastSentX || y !== this.lastSentY);
+
+            if (moved && now - this.lastPositionUpdate > updateInterval) {
+                this.lastPositionUpdate = now;
+                this.lastSentX = x;
+                this.lastSentY = y;
+
+                updateDoc(doc(playersRef, currentUserId), { x, y }).catch((e) => {
+                    console.error("Position update failed:", e);
+                });
             }
         }
-        
-        //document.getElementById('close-auth-modal').addEventListener('click', () => { document.getElementById('auth-error-modal').style.display = 'none'; });
-        //document.getElementById('close-firestore-modal').addEventListener('click', () => { document.getElementById('firestore-error-modal').style.display = 'none'; });
-        document.getElementById('reset-score').addEventListener('click', () => setDoc(highScoreRef, { value: 0 }));
-        document.getElementById('play-music').addEventListener('click', () => document.getElementById('background-music').play());
-        document.getElementById('stop-music').addEventListener('click', () => {
-            const music = document.getElementById('background-music');
-            music.pause(); music.currentTime = 0;
+    }
+
+    attachFirestoreListeners() {
+        onSnapshot(highScoreRef, (docSnap) => {
+            document.getElementById('highScoreDisplay').textContent =
+                `Global Wheat: ${docSnap.exists() ? docSnap.data().value : 0}`;
         });
-        document.getElementById('send-message').addEventListener('click', () => {
-            if (!currentUserId) return;
-            const name = document.getElementById('name-input').value || 'Anonymous';
-            const message = document.getElementById('message-input').value || '';
-            setDoc(doc(playersRef, currentUserId), { name, message }, { merge: true });
+
+        onSnapshot(playersRef, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                const playerData = change.doc.data();
+                const playerId = change.doc.id;
+
+                const textStyle = {
+                    fontSize: '14px',
+                    fill: '#fff',
+                    stroke: '#000',
+                    strokeThickness: 3,
+                    align: 'center'
+                };
+
+                if (change.type === "added") {
+                    const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall')
+                        .setCollideWorldBounds(true).setScale(0.5);
+
+                    const nameText = this.add.text(0, 0, `${playerData.name}\n${playerData.message}`, textStyle).setOrigin(0.5);
+                    const scoreText = this.add.text(0, 0, `Score: ${playerData.score}`, {
+                        ...textStyle,
+                        fontSize: '16px'
+                    }).setOrigin(0.5);
+
+                    player.uiElements = [nameText, scoreText];
+                    this.players[playerId] = player;
+
+                    if (playerId === currentUserId) {
+                        this.playerSprite = player;
+                    }
+                }
+
+                if (this.players[playerId]) {
+                    const player = this.players[playerId];
+
+                    if (playerId !== currentUserId) {
+                        player.setPosition(playerData.x, playerData.y);
+                    }
+
+                    player.uiElements[0]
+                        .setPosition(playerData.x, playerData.y - 60)
+                        .setText(`${playerData.name}\n${playerData.message}`);
+
+                    player.uiElements[1]
+                        .setPosition(playerData.x, playerData.y - 30)
+                        .setText(`Score: ${playerData.score}`);
+
+                    if (playerId === currentUserId) {
+                        document.getElementById('flour-count').textContent = playerData.flour || 0;
+                        document.getElementById('yeast-count').textContent = playerData.yeast || 0;
+                        document.getElementById('bread-count').textContent = playerData.bread || 0;
+                    }
+                }
+
+                if (change.type === "removed") {
+                    if (this.players[playerId]) {
+                        this.players[playerId].uiElements.forEach(el => el.destroy());
+                        this.players[playerId].destroy();
+                        delete this.players[playerId];
+                    }
+                }
+            });
         });
-        async function handleCrafting(cost, item, amount) {
-            if (!currentUserId) return;
-            const highScoreDoc = await getDoc(highScoreRef);
-            if (highScoreDoc.exists() && highScoreDoc.data().value >= cost) {
-                await setDoc(highScoreRef, { value: increment(-cost) }, { merge: true });
-                await setDoc(doc(playersRef, currentUserId), { [item]: increment(amount) }, { merge: true });
-            } else { alert("Not enough global wheat!"); }
+
+        onSnapshot(greenBallsRef, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                const ballId = change.doc.id;
+                const ballData = change.doc.data();
+
+                if (change.type === "added") {
+                    const ball = this.physics.add.image(ballData.x, ballData.y, 'greenBall').setScale(0.3);
+                    this.greenBalls[ballId] = ball;
+
+                    if (this.playerSprite) {
+                        this.physics.add.overlap(this.playerSprite, ball, () => this.eatGreenBall(ballId), null, this);
+                    }
+                }
+
+                if (change.type === "removed") {
+                    if (this.greenBalls[ballId]) {
+                        this.greenBalls[ballId].destroy();
+                        delete this.greenBalls[ballId];
+                    }
+                }
+            });
+        });
+    }
+
+    async initializeGameWorld() {
+        const initialBalls = await getDocs(greenBallsRef);
+        if (initialBalls.empty) {
+            for (let i = 0; i < 15; i++) {
+                addDoc(greenBallsRef, {
+                    x: Phaser.Math.Between(50, 750),
+                    y: Phaser.Math.Between(50, 550)
+                });
+            }
         }
-        document.getElementById('make-flour').addEventListener('click', () => handleCrafting(10, 'flour', 1));
-        document.getElementById('make-yeast').addEventListener('click', () => handleCrafting(5, 'yeast', 1));
-        document.getElementById('make-bread').addEventListener('click', async () => {
-            if (!currentUserId) return;
-            const playerDoc = await getDoc(doc(playersRef, currentUserId));
-            if (playerDoc.exists() && playerDoc.data().flour >= 1 && playerDoc.data().yeast >= 1) {
-                await setDoc(doc(playersRef, currentUserId), {
-                    flour: increment(-1), yeast: increment(-1), bread: increment(1)
-                }, { merge: true });
-            } else { alert("Not enough flour and yeast!"); }
-        });
+    }
+
+    async eatGreenBall(ballId) {
+        if (!this.greenBalls[ballId] || !currentUserId) return;
+
+        this.greenBalls[ballId].destroy();
+        delete this.greenBalls[ballId];
+
+        try {
+            await deleteDoc(doc(greenBallsRef, ballId));
+            await addDoc(greenBallsRef, {
+                x: Phaser.Math.Between(50, 750),
+                y: Phaser.Math.Between(50, 550)
+            });
+            await setDoc(doc(playersRef, currentUserId), {
+                score: increment(10)
+            }, { merge: true });
+
+            await setDoc(highScoreRef, {
+                value: increment(10)
+            }, { merge: true });
+
+        } catch (e) {
+            console.error("Error eating ball:", e);
+        }
+    }
+}
+
 
         const config = {
             type: Phaser.AUTO, width: 800, height: 600, parent: 'game-container',
@@ -585,6 +615,7 @@
 -->
 </body>
 </html>
+
 
 
 
