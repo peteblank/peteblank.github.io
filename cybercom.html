@@ -222,12 +222,11 @@
     <script src="game.js"></script>
 <div id="wheat" style="width:800px; top: 900px; left: 50%; cursor: pointer;" onclick="handleWheatClick(this)">
 </div>
-    <script type="module">// --- Firebase SDK Imports ---
- // --- Firebase SDK Imports ---
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
         import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, updateDoc, getDocs, increment, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-        // --- Your Web App's Firebase Configuration ---
+    
         const firebaseConfig = {
             apiKey: "zmUpmqVHQ5b9SYulHYm2c7PXUIJ3",
             authDomain: "cybercom-fc6f6.firebaseapp.com",
@@ -568,6 +567,7 @@
 -->
 </body>
 </html>
+
 
 
 
