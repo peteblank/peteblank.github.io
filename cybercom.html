@@ -296,6 +296,28 @@
             }
 
             create() {
+                                        if (change.type === "added") {
+                            const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall')
+                                .setCollideWorldBounds(true).setScale(0.5);
+                            
+                            // Ensure physics body is enabled
+                            if (player.body) {
+                                player.body.setCollideWorldBounds(true);
+                            }
+
+                            const nameText = this.add.text(0, 0, `${playerData.name}\n${playerData.message}`, textStyle).setOrigin(0.5);
+                            const scoreText = this.add.text(0, 0, `Score: ${playerData.score}`, {
+                                ...textStyle,
+                                fontSize: '16px'
+                            }).setOrigin(0.5);
+
+                            player.uiElements = [nameText, scoreText];
+                            this.players[playerId] = player;
+
+                            if (playerId === currentUserId) {
+                                this.playerSprite = player;
+                            }
+                        }
                 this.cursors = this.input.keyboard.createCursorKeys();
 
                 onAuthStateChanged(auth, async (user) => {
@@ -645,6 +667,7 @@
 -->
 </body>
 </html>
+
 
 
 
