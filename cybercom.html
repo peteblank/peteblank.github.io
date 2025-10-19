@@ -412,8 +412,8 @@
             }
         }
         
-        document.getElementById('close-auth-modal').addEventListener('click', () => { document.getElementById('auth-error-modal').style.display = 'none'; });
-        document.getElementById('close-firestore-modal').addEventListener('click', () => { document.getElementById('firestore-error-modal').style.display = 'none'; });
+        //document.getElementById('close-auth-modal').addEventListener('click', () => { document.getElementById('auth-error-modal').style.display = 'none'; });
+        //document.getElementById('close-firestore-modal').addEventListener('click', () => { document.getElementById('firestore-error-modal').style.display = 'none'; });
         document.getElementById('reset-score').addEventListener('click', () => setDoc(highScoreRef, { value: 0 }));
         document.getElementById('play-music').addEventListener('click', () => document.getElementById('background-music').play());
         document.getElementById('stop-music').addEventListener('click', () => {
@@ -567,6 +567,7 @@
 -->
 </body>
 </html>
+
 
 
 
