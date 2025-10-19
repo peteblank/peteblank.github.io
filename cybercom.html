@@ -23,6 +23,8 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 6px 6px rgba(0,0,0,0.25);
             overflow: hidden;
             margin-bottom: 1rem;
+            height:1200;
+            width:1920;
         }
         .panel {
             display: inline-block;
@@ -173,7 +175,7 @@
     <p>Use arrow keys to move the yellow ball and eat green balls!</p>
 -->
       <h1 class="text-3xl font-bold mb-2">Multiplayer Ball Eater & Baker</h1>
-    <div id="game-container"></div>
+    
 
     <div class="inventory-panel">
         <h2>Your Inventory:</h2>
@@ -218,7 +220,7 @@
     <button id="pauseMusicButton" style="margin-top: 20px;" onclick="pauseMusic()">Pause Music</button>
     -->
 
-
+<div id="game-container"></div>
 <script>
         const audio = new Audio('music.mp3');
 
@@ -541,7 +543,7 @@
             type: Phaser.AUTO, 
             width: 1900, 
             height: 1200, 
-            //parent: 'game-container',
+            parent: 'game-container',
             backgroundColor: '#3498db', 
             physics: { 
                 default: 'arcade', 
@@ -667,6 +669,7 @@
 -->
 </body>
 </html>
+
 
 
 
