@@ -296,7 +296,7 @@
             }
 
             create() {
-                                        if (change.type === "added") {
+                             /*           if (change.type === "added") {
                             const player = this.physics.add.image(playerData.x, playerData.y, 'yellowBall')
                                 .setCollideWorldBounds(true).setScale(0.5);
                             
@@ -317,7 +317,7 @@
                             if (playerId === currentUserId) {
                                 this.playerSprite = player;
                             }
-                        }
+                        }*/
                 this.cursors = this.input.keyboard.createCursorKeys();
 
                 onAuthStateChanged(auth, async (user) => {
@@ -667,6 +667,7 @@
 -->
 </body>
 </html>
+
 
 
 
