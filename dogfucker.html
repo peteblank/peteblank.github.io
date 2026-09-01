@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Filtered IP Display</title>
+</head>
+<body>
+
+    <div id="content">Waiting for visitor data...</div>
+
+    <script>
+        // Replace this with your actual public IP address
+        const MY_IP = "YOUR_IP_HERE";
+
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                // Check if the current visitor is you
+                if (data.ip === MY_IP) {
+                    document.getElementById('content').textContent = "Visitor is you (Filtered out).";
+                    return; // Stop execution for your IP
+                }
+
+                // Code for everyone else's IP goes here
+                document.getElementById('content').textContent = "Visitor IP: " + data.ip;
+                
+                // Optional: Send to a server, webhook, or database for other users
+                // sendToDatabase(data.ip);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    </script>
+
+</body>
+</html>
