@@ -1,36 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Filtered IP Display</title>
-</head>
-<body>
+<div id="content">Waiting for visitor data...</div>
 
-    <div id="content">Waiting for visitor data...</div>
+<script>
+    // Replace this with your actual public IP address
+    const MY_IP = "0.0.0.0";
 
-    <script>
-        // Replace this with your actual public IP address
-        const MY_IP = "0.0.0.0";
+    fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+            const visitorIP = data.ip;
 
-        fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => {
-                // Check if the current visitor is you
-                if (data.ip === MY_IP) {
-                    document.getElementById('content').textContent = "Visitor is you (Filtered out).";
-                    return; // Stop execution for your IP
-                }
+            // Check if the current visitor is you
+            if (visitorIP === MY_IP) {
+                document.getElementById('content').textContent =
+                    "Visitor is you (Filtered out).";
+                return;
+            }
 
-                // Code for everyone else's IP goes here
-                document.getElementById('content').textContent = "Visitor IP: " + data.ip;
-                
-                // Optional: Send to a server, webhook, or database for other users
-                // sendToDatabase(data.ip);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    </script>
+            document.getElementById('content').textContent =
+                "Visitor IP: " + visitorIP;
 
-</body>
-</html>
+            // Create a text file containing the visitor IP
+            const text = "Visitor IP: " + visitorIP + "\n";
+            const blob = new Blob([text], { type: "text/plain" });
+
+            // Download visitors.txt
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "visitors.txt";
+            link.click();
+
+            URL.revokeObjectURL(link.href);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('content').textContent =
+                "Unable to retrieve visitor data.";
+        });
+</script>
